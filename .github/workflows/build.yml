@@ -1,0 +1,28 @@
+name: Build ChelCheckCMD Executable
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Setup MSVC Compiler
+      uses: ilammy/msvc-dev-cmd@v1
+
+    - name: Compile C++ Executable
+      run: |
+        cl.exe /EHsc /std:c++17 /Fe:ChelCheckCMD.exe main.cpp
+
+    - name: Upload Built Executable Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: ChelCheckCMD-Windows
+        path: ChelCheckCMD.exe
