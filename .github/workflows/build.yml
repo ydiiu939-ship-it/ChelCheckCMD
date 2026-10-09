@@ -12,7 +12,7 @@ jobs:
 
     steps:
     - name: Checkout Code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Setup MSVC Compiler
       uses: ilammy/msvc-dev-cmd@v1
@@ -22,7 +22,7 @@ jobs:
         cl.exe /EHsc /std:c++17 /Fe:ChelCheckCMD.exe main.cpp
 
     - name: Upload Built Executable Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ChelCheckCMD-Windows
         path: ChelCheckCMD.exe
