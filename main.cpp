@@ -7,33 +7,39 @@
 #include <cstdlib>
 #include <sstream>
 #include <memory>
-#include <stdexcept>
 #include <array>
+#include <cstdio>
 
 #ifdef _WIN32
 #include <windows.h>
-#else
-#define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0400
 #endif
 
 // =========================================================
-// ANSI Color & Style Codes (สำหรับ UI/UX เท่ๆ)
+// Cyberpunk / Pro Matrix Color & Style Palette
 // =========================================================
 namespace Color {
-    const std::string RESET   = "\033[0m";
-    const std::string BOLD    = "\033[1m";
-    const std::string DIM     = "\033[2m";
-    const std::string RED     = "\033[91m";
-    const std::string GREEN   = "\033[92m";
-    const std::string YELLOW  = "\033[93m";
-    const std::string BLUE    = "\033[94m";
-    const std::string MAGENTA = "\033[95m";
-    const std::string CYAN    = "\033[96m";
-    const std::string WHITE   = "\033[97m";
-    const std::string BG_DARK = "\033[40m";
+    const std::string RESET        = "\033[0m";
+    const std::string BOLD         = "\033[1m";
+    const std::string DIM          = "\033[2m";
+    const std::string ITALIC       = "\033[3m";
+    const std::string UNDERLINE    = "\033[4m";
+    
+    // Foreground
+    const std::string RED          = "\033[91m";
+    const std::string GREEN        = "\033[92m";
+    const std::string YELLOW       = "\033[93m";
+    const std::string BLUE         = "\033[94m";
+    const std::string MAGENTA      = "\033[95m";
+    const std::string CYAN         = "\033[96m";
+    const std::string WHITE        = "\033[97m";
+    const std::string DARK_GRAY    = "\033[90m";
+    
+    // Backgrounds
+    const std::string BG_RED       = "\033[41m";
+    const std::string BG_GREEN     = "\033[42m";
+    const std::string BG_DARK      = "\033[40m";
 }
 
-// Struct สำหรับเก็บผลลัพธ์การตรวจ
 struct CheckResult {
     std::string moduleName;
     bool passed;
@@ -41,16 +47,17 @@ struct CheckResult {
 };
 
 // =========================================================
-// Helper Functions (UI & System Exec)
+// Console Setup & Core Helper Functions
 // =========================================================
 void setupConsole() {
 #ifdef _WIN32
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
     DWORD dwMode = 0;
-    GetConsoleMode(hOut, &dwMode);
-    dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-    SetConsoleMode(hOut, dwMode);
-    SetConsoleOutputCP(65001); // UTF-8
+    if (GetConsoleMode(hOut, &dwMode)) {
+        dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+        SetConsoleMode(hOut, dwMode);
+    }
+    SetConsoleOutputCP(65001); // UTF-8 Encoding
 #endif
 }
 
@@ -71,125 +78,166 @@ void printBanner() {
  ╚██████╗██║  ██║███████╗███████╗██████╗██║  ██║███████╗╚██████╗██║ ╚═╝ ██║██████╔╝
   ╚═════╝╚═╝  ╚═╝╚══════╝╚══════╝╚═════╝╚═╝  ╚═╝╚══════╝ ╚═════╝╚═╝     ╚═╝╚═════╝ 
 )" << Color::RESET;
-    std::cout << Color::MAGENTA << "             ================================================" << Color::RESET << std::endl;
-    std::cout << Color::WHITE << Color::BOLD << "             [ ChelCheckCMD v1.0 ] - Ultimate Forensic Tool" << Color::RESET << std::endl;
-    std::cout << Color::MAGENTA << "             ================================================" << Color::RESET << "\n\n";
+    std::cout << Color::DARK_GRAY << " ═════════════════════════════════════════════════════════════════════════════════" << Color::RESET << std::endl;
+    std::cout << Color::WHITE << Color::BOLD << "   [ ChelCheckCMD v1.0 ] " << Color::MAGENTA << "― Professional Anti-Cheat & Forensic Suite" << Color::RESET << std::endl;
+    std::cout << Color::DARK_GRAY << " ═════════════════════════════════════════════════════════════════════════════════" << Color::RESET << "\n\n";
 }
 
-void loadingAnimation(const std::string& label, int durationMs = 800) {
-    std::cout << Color::YELLOW << "  [>] " << Color::WHITE << std::left << std::setw(38) << label << Color::CYAN << " [";
-    const char spinner[] = {'|', '/', '-', '\\'};
-    int steps = 15;
+// Pro Animated Loading Bar
+void loadingAnimation(const std::string& label, int durationMs = 600) {
+    const char spinner[] = {'⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'};
+    int steps = 20;
     int sleepTime = durationMs / steps;
     
     for (int i = 0; i <= steps; ++i) {
-        int pos = (i * 20) / steps;
-        std::cout << "\r" << Color::YELLOW << "  [>] " << Color::WHITE << std::left << std::setw(38) << label << Color::CYAN << " [";
-        for (int j = 0; j < 20; ++j) {
-            if (j < pos) std::cout << "=";
-            else if (j == pos) std::cout << ">";
-            else std::cout << " ";
+        int percent = (i * 100) / steps;
+        int barWidth = 24;
+        int filled = (i * barWidth) / steps;
+
+        std::cout << "\r  " << Color::CYAN << spinner[i % 10] << Color::WHITE << Color::BOLD << " Analyzing " 
+                  << Color::YELLOW << std::left << std::setw(38) << label 
+                  << Color::DARK_GRAY << " [" << Color::GREEN;
+        
+        for (int j = 0; j < barWidth; ++j) {
+            if (j < filled) std::cout << "█";
+            else std::cout << "░";
         }
-        std::cout << "] " << spinner[i % 4] << " " << std::flush;
+        std::cout << Color::DARK_GRAY << "] " << Color::CYAN << std::right << std::setw(3) << percent << "%" << Color::RESET << std::flush;
         std::this_thread::sleep_for(std::chrono::milliseconds(sleepTime));
     }
-    std::cout << "\r" << Color::YELLOW << "  [>] " << Color::WHITE << std::left << std::setw(38) << label << Color::CYAN << " [====================] " << Color::GREEN << "DONE!" << Color::RESET << std::endl;
+    std::cout << "\r  " << Color::GREEN << "✔" << Color::WHITE << Color::BOLD << " Completed " 
+              << Color::YELLOW << std::left << std::setw(38) << label 
+              << Color::DARK_GRAY << " [" << Color::GREEN << "████████████████████████" << Color::DARK_GRAY << "] " 
+              << Color::GREEN << "100%" << Color::RESET << std::endl;
 }
 
+// Cross-Platform Execution Engine (Fixed MSVC popen/pclose Issue)
 std::string execPowerShell(const std::string& cmd) {
-    std::array<char, 128> buffer;
+    std::array<char, 256> buffer;
     std::string result;
     std::string fullCmd = "powershell -NoProfile -ExecutionPolicy Bypass -Command \"" + cmd + "\"";
     
-    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(fullCmd.c_str(), "r"), pclose);
+#ifdef _WIN32
+    FILE* pipe = _popen(fullCmd.c_str(), "r");
     if (!pipe) return "ERROR";
-    
-    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+    while (fgets(buffer.data(), static_cast<int>(buffer.size()), pipe) != nullptr) {
         result += buffer.data();
     }
+    _pclose(pipe);
+#else
+    FILE* pipe = popen(fullCmd.c_str(), "r");
+    if (!pipe) return "ERROR";
+    while (fgets(buffer.data(), static_cast<int>(buffer.size()), pipe) != nullptr) {
+        result += buffer.data();
+    }
+    pclose(pipe);
+#endif
+
     return result;
 }
 
 // =========================================================
-// System Checking Modules
+// Forensic & Security Scan Modules
 // =========================================================
 
-// 1. ตรวจสอบไฟล์แปลกๆ ใน Temp / AppData / Prefetch
+// 1. ตรวจสอบไฟล์ใน Temp / AppData
 CheckResult checkSuspiciousFiles() {
-    loadingAnimation("Checking Suspicious Files & Paths");
-    std::string cmd = "Get-ChildItem -Path $env:TEMP, $env:LOCALAPPDATA, $env:APPDATA -Include *.exe,*.dll,*.bat,*.sys -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -gt (Get-Date).AddDays(-3) } | Select-Object -First 5 | Format-Table -HideTableHeaders Name";
+    loadingAnimation("Suspicious Files & Temp Directory");
+    std::string cmd = "Get-ChildItem -Path $env:TEMP, $env:LOCALAPPDATA, $env:APPDATA -Include *.exe,*.dll,*.bat,*.sys -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -gt (Get-Date).AddDays(-3) } | Select-Object -First 5 -ExpandProperty Name";
     std::string res = execPowerShell(cmd);
     
-    bool suspicious = (res.find(".exe") != std::string::npos || res.find(".dll") != std::string::npos);
-    return { "Suspicious Files Check", !suspicious, suspicious ? "Found recent executables in Temp/AppData:\n" + res : "No suspicious active files in Temp/AppData" };
+    bool suspicious = (res.find(".exe") != std::string::npos || res.find(".dll") != std::string::npos || res.find(".sys") != std::string::npos);
+    return { 
+        "Suspicious Active Files", 
+        !suspicious, 
+        suspicious ? "Found executable/driver files created recently in Temp/AppData:\n" + res : "No suspicious executables or drivers detected in Temp/AppData." 
+    };
 }
 
-// 2. ตรวจสอบ Process ทำร้ายระบบ / Injection Tools
+// 2. ตรวจสอบ Process / Injected Tools
 CheckResult checkMaliciousProcesses() {
-    loadingAnimation("Checking Running Processes");
-    std::string cmd = "Get-Process | Where-Object { $_.ProcessName -match 'cheat|hack|injector|cheatengine|xenos|processhacker|dnspy|scylla' } | Select-Object -ExpandProperty ProcessName";
+    loadingAnimation("Running Processes Integrity");
+    std::string cmd = "Get-Process | Where-Object { $_.ProcessName -match 'cheat|hack|injector|cheatengine|xenos|processhacker|dnspy|scylla|cheat' } | Select-Object -ExpandProperty ProcessName";
     std::string res = execPowerShell(cmd);
     
     bool found = !res.empty() && res.find_first_not_of(" \t\n\r") != std::string::npos;
-    return { "Process Integrity Check", !found, found ? "ALERT: Suspicious Process Running: " + res : "All running processes clean" };
+    return { 
+        "Malicious Processes Scan", 
+        !found, 
+        found ? "ALERT! Blacklisted tool/process detected running:\n" + res : "All active system processes clean." 
+    };
 }
 
-// 3. ตรวจสอบประวัติไฟล์ที่ถูกลบไปแล้ว (Recycle Bin & USN Journal)
+// 3. ตรวจสอบประวัติถังขยะ (Recycle Bin)
 CheckResult checkDeletedFilesHistory() {
-    loadingAnimation("Checking Deleted Files History");
-    std::string cmd = "(New-Object -ComObject Shell.Application).NameSpace(0xa).Items() | Select-Object -First 5 | ForEach-Object { $_.Name }";
+    loadingAnimation("Deleted Files (Recycle Bin)");
+    std::string cmd = "(New-Object -ComObject Shell.Application).NameSpace(0xa).Items() | Select-Object -First 5 -ExpandProperty Name";
     std::string res = execPowerShell(cmd);
     
     bool found = !res.empty() && res.find_first_not_of(" \t\n\r") != std::string::npos;
-    return { "Recycle Bin History Check", true, found ? "Recent Recycle Bin items:\n" + res : "Recycle Bin empty or clean" };
+    return { 
+        "Recycle Bin Artifacts", 
+        true, 
+        found ? "Recent deleted items found in Recycle Bin:\n" + res : "Recycle Bin is currently clean/empty." 
+    };
 }
 
-// 4. ตรวจสอบประวัติคำสั่ง PowerShell (PowerShell History)
+// 4. ตรวจสอบประวัติ PowerShell
 CheckResult checkPowerShellHistory() {
-    loadingAnimation("Checking PowerShell History Log");
-    std::string cmd = "Get-History; Get-Content (Get-PSReadLineOption).HistorySavePath -ErrorAction SilentlyContinue | Select-Object -Last 10";
+    loadingAnimation("PowerShell History Logs");
+    std::string cmd = "Get-Content (Get-PSReadLineOption).HistorySavePath -ErrorAction SilentlyContinue | Select-Object -Last 5";
     std::string res = execPowerShell(cmd);
     
     bool deletedHistory = res.empty() || res.find("ERROR") != std::string::npos;
-    return { "PowerShell History Check", !deletedHistory, deletedHistory ? "WARNING: PowerShell history log is missing or cleared!" : "PowerShell history retrieved successfully" };
+    return { 
+        "PowerShell History Logs", 
+        !deletedHistory, 
+        deletedHistory ? "WARNING: PowerShell history log file missing, empty, or recently cleared!" : "Recent PowerShell Execution History:\n" + res 
+    };
 }
 
-// 5. ตรวจสอบ Prefetch / Recent Executed Programs
+// 5. ตรวจสอบ Prefetch History
 CheckResult checkExecutedHistory() {
-    loadingAnimation("Checking System Executed History (Prefetch)");
+    loadingAnimation("System Execution Cache (Prefetch)");
     std::string cmd = "Get-ChildItem -Path C:\\Windows\\Prefetch -Filter *.pf -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 5 -ExpandProperty Name";
     std::string res = execPowerShell(cmd);
     
-    return { "Prefetch History Check", true, "Recently Executed (Prefetch):\n" + res };
+    bool valid = !res.empty() && res.find_first_not_of(" \t\n\r") != std::string::npos;
+    return { 
+        "Prefetch Execution Log", 
+        valid, 
+        valid ? "Recently launched applications (Prefetch):\n" + res : "Prefetch log is empty or access denied." 
+    };
 }
 
 // =========================================================
-// Main UI & Menu System
+// UI Card Render Engine
 // =========================================================
 void renderResultCard(const CheckResult& res) {
-    std::cout << "\n  " << Color::BOLD << Color::WHITE << "┌─────────────────────────────────────────────────────────────┐" << Color::RESET << std::endl;
-    std::cout << "  │ " << Color::BOLD << std::left << std::setw(32) << res.moduleName;
+    std::cout << "\n  " << Color::DARK_GRAY << "┌──────────────────────────────────────────────────────────────────────────┐" << Color::RESET << std::endl;
+    std::cout << "  │ " << Color::BOLD << Color::WHITE << std::left << std::setw(45) << res.moduleName;
     if (res.passed) {
-        std::cout << Color::GREEN << Color::BOLD << " [ PASSED ] " << Color::WHITE << " │" << Color::RESET << std::endl;
+        std::cout << Color::BG_GREEN << Color::WHITE << Color::BOLD << "  ✔ PASSED  " << Color::RESET << Color::DARK_GRAY << " │" << Color::RESET << std::endl;
     } else {
-        std::cout << Color::RED << Color::BOLD << " [ DETECTED ] " << Color::WHITE << "│" << Color::RESET << std::endl;
+        std::cout << Color::BG_RED << Color::WHITE << Color::BOLD << "  ✘ DETECTED " << Color::RESET << Color::DARK_GRAY << " │" << Color::RESET << std::endl;
     }
-    std::cout << "  ├─────────────────────────────────────────────────────────────┤" << Color::RESET << std::endl;
+    std::cout << "  " << Color::DARK_GRAY << "├──────────────────────────────────────────────────────────────────────────┤" << Color::RESET << std::endl;
     
     std::stringstream ss(res.details);
     std::string line;
     while (std::getline(ss, line)) {
         if (!line.empty()) {
-            std::cout << "  │ " << Color::DIM << std::left << std::setw(59) << line.substr(0, 58) << Color::RESET << " │" << std::endl;
+            if (line.size() > 70) line = line.substr(0, 67) + "...";
+            std::cout << "  │ " << Color::DIM << Color::CYAN << "  › " << Color::WHITE << std::left << std::setw(65) << line << Color::RESET << Color::DARK_GRAY << " │" << Color::RESET << std::endl;
         }
     }
-    std::cout << "  " << Color::BOLD << Color::WHITE << "└─────────────────────────────────────────────────────────────┘" << Color::RESET << std::endl;
+    std::cout << "  " << Color::DARK_GRAY << "└──────────────────────────────────────────────────────────────────────────┘" << Color::RESET << std::endl;
 }
 
 void runAllChecks() {
     clearScreen();
     printBanner();
-    std::cout << Color::CYAN << Color::BOLD << "  [=== RUNNING FULL SYSTEM CHECKS ===]\n\n" << Color::RESET;
+    std::cout << Color::CYAN << Color::BOLD << "  [=== INITIATING FULL SYSTEM AUTO SCAN ===]\n\n" << Color::RESET;
     
     std::vector<CheckResult> results;
     results.push_back(checkSuspiciousFiles());
@@ -198,31 +246,34 @@ void runAllChecks() {
     results.push_back(checkPowerShellHistory());
     results.push_back(checkExecutedHistory());
 
-    std::cout << "\n" << Color::MAGENTA << Color::BOLD << "  ================== SUMMARY REPORT ==================" << Color::RESET << std::endl;
+    std::cout << "\n\n  " << Color::MAGENTA << Color::BOLD << "=========================== [ SCAN REPORT SUMMARY ] ===========================" << Color::RESET << std::endl;
     for (const auto& res : results) {
         renderResultCard(res);
     }
     
-    std::cout << "\n" << Color::YELLOW << "  กด Enter เพื่อกลับสู่เมนูหลัก..." << Color::RESET;
+    std::cout << "\n\n  " << Color::YELLOW << Color::BOLD << "  [!] Press Enter to return to main menu..." << Color::RESET;
     std::cin.ignore();
     std::cin.get();
 }
 
+// =========================================================
+// Main Interactive Menu Loop
+// =========================================================
 void showMenu() {
     while (true) {
         clearScreen();
         printBanner();
         
-        std::cout << Color::WHITE << Color::BOLD << "  กรุณาเลือกรายการที่ต้องการเช็ค:\n" << Color::RESET << std::endl;
-        std::cout << Color::CYAN << "   [1] " << Color::WHITE << "เช็คไฟล์แปลกๆ (Temp/AppData/Executable)" << std::endl;
-        std::cout << Color::CYAN << "   [2] " << Color::WHITE << "เช็ค Process ทำร้ายระบบ / Injection" << std::endl;
-        std::cout << Color::CYAN << "   [3] " << Color::WHITE << "เช็คประวัติไฟล์ที่ถูกลบ (Recycle Bin)" << std::endl;
-        std::cout << Color::CYAN << "   [4] " << Color::WHITE << "เช็คประวัติคำสั่ง PowerShell / การลบ Log" << std::endl;
-        std::cout << Color::CYAN << "   [5] " << Color::WHITE << "เช็คประวัติการเปิดโปรแกรมย้อนหลัง (Prefetch)" << std::endl;
-        std::cout << Color::GREEN << Color::BOLD << "   [6] " << Color::WHITE << Color::BOLD << "ตรวจครบทุกระบบ (FULL AUTO SCAN)" << Color::RESET << std::endl;
-        std::cout << Color::RED << "   [0] " << Color::WHITE << "ออกจากโปรแกรม" << std::endl;
+        std::cout << Color::WHITE << Color::BOLD << "  [ SELECT SCAN MODULE ]\n" << Color::RESET << std::endl;
+        std::cout << Color::CYAN << "   [1] " << Color::WHITE << "Check Suspicious Files & Paths " << Color::DARK_GRAY << "(Temp / AppData / Executables)" << std::endl;
+        std::cout << Color::CYAN << "   [2] " << Color::WHITE << "Check Running Processes " << Color::DARK_GRAY << "(Injectors / Mod Tools / Hacks)" << std::endl;
+        std::cout << Color::CYAN << "   [3] " << Color::WHITE << "Check Deleted Files History " << Color::DARK_GRAY << "(Recycle Bin Artifacts)" << std::endl;
+        std::cout << Color::CYAN << "   [4] " << Color::WHITE << "Check PowerShell Command Logs " << Color::DARK_GRAY << "(History & Log Wiping)" << std::endl;
+        std::cout << Color::CYAN << "   [5] " << Color::WHITE << "Check Program Execution History " << Color::DARK_GRAY << "(Prefetch Logs)" << std::endl;
+        std::cout << Color::GREEN << Color::BOLD << "   [6] " << Color::WHITE << Color::BOLD << "RUN FULL AUTOMATED SCAN " << Color::GREEN << "(Recommended)" << Color::RESET << std::endl;
+        std::cout << Color::RED << "   [0] " << Color::WHITE << "Exit Program" << std::endl;
         
-        std::cout << "\n" << Color::YELLOW << "  ChelCheckCMD > " << Color::RESET;
+        std::cout << "\n  " << Color::YELLOW << Color::BOLD << "ChelCheckCMD " << Color::CYAN << "❯ " << Color::RESET;
         
         int choice;
         if (!(std::cin >> choice)) {
@@ -246,7 +297,7 @@ void showMenu() {
             default: continue;
         }
 
-        std::cout << "\n" << Color::YELLOW << "  กด Enter เพื่อกลับสู่เมนูหลัก..." << Color::RESET;
+        std::cout << "\n\n  " << Color::YELLOW << Color::BOLD << "  [!] Press Enter to return to main menu..." << Color::RESET;
         std::cin.ignore();
         std::cin.get();
     }
