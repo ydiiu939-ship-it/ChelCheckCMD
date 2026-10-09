@@ -14,17 +14,10 @@
 #include <windows.h>
 #endif
 
-// =========================================================
-// Cyberpunk / Pro Matrix Color & Style Palette
-// =========================================================
 namespace Color {
     const std::string RESET        = "\033[0m";
     const std::string BOLD         = "\033[1m";
     const std::string DIM          = "\033[2m";
-    const std::string ITALIC       = "\033[3m";
-    const std::string UNDERLINE    = "\033[4m";
-    
-    // Foreground
     const std::string RED          = "\033[91m";
     const std::string GREEN        = "\033[92m";
     const std::string YELLOW       = "\033[93m";
@@ -33,11 +26,8 @@ namespace Color {
     const std::string CYAN         = "\033[96m";
     const std::string WHITE        = "\033[97m";
     const std::string DARK_GRAY    = "\033[90m";
-    
-    // Backgrounds
     const std::string BG_RED       = "\033[41m";
     const std::string BG_GREEN     = "\033[42m";
-    const std::string BG_DARK      = "\033[40m";
 }
 
 struct CheckResult {
@@ -46,9 +36,6 @@ struct CheckResult {
     std::string details;
 };
 
-// =========================================================
-// Console Setup & Core Helper Functions
-// =========================================================
 void setupConsole() {
 #ifdef _WIN32
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -57,7 +44,7 @@ void setupConsole() {
         dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
         SetConsoleMode(hOut, dwMode);
     }
-    SetConsoleOutputCP(65001); // UTF-8 Encoding
+    SetConsoleOutputCP(65001);
 #endif
 }
 
@@ -79,11 +66,10 @@ void printBanner() {
   ╚═════╝╚═╝  ╚═╝╚══════╝╚══════╝╚═════╝╚═╝  ╚═╝╚══════╝ ╚═════╝╚═╝     ╚═╝╚═════╝ 
 )" << Color::RESET;
     std::cout << Color::DARK_GRAY << " ═════════════════════════════════════════════════════════════════════════════════" << Color::RESET << std::endl;
-    std::cout << Color::WHITE << Color::BOLD << "   [ ChelCheckCMD v1.0 ] " << Color::MAGENTA << "― Professional Anti-Cheat & Forensic Suite" << Color::RESET << std::endl;
+    std::cout << Color::WHITE << Color::BOLD << "   [ ChelCheckCMD v2.0 ] " << Color::MAGENTA << "― Precision Anti-Cheat & Forensic Suite" << Color::RESET << std::endl;
     std::cout << Color::DARK_GRAY << " ═════════════════════════════════════════════════════════════════════════════════" << Color::RESET << "\n\n";
 }
 
-// Pro Animated Loading Bar
 void loadingAnimation(const std::string& label, int durationMs = 600) {
     const char spinner[] = {'⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'};
     int steps = 20;
@@ -111,7 +97,6 @@ void loadingAnimation(const std::string& label, int durationMs = 600) {
               << Color::GREEN << "100%" << Color::RESET << std::endl;
 }
 
-// Cross-Platform Execution Engine (Fixed MSVC popen/pclose Issue)
 std::string execPowerShell(const std::string& cmd) {
     std::array<char, 256> buffer;
     std::string result;
@@ -137,81 +122,135 @@ std::string execPowerShell(const std::string& cmd) {
 }
 
 // =========================================================
-// Forensic & Security Scan Modules
+// Advanced Precision Scan Modules
 // =========================================================
 
-// 1. ตรวจสอบไฟล์ใน Temp / AppData
+// 1. ตรวจสอบเฉพาะไฟล์ที่มีพฤติกรรมโกง (คัดแยกไฟล์เกมออก 100%)
 CheckResult checkSuspiciousFiles() {
-    loadingAnimation("Suspicious Files & Temp Directory");
-    std::string cmd = "Get-ChildItem -Path $env:TEMP, $env:LOCALAPPDATA, $env:APPDATA -Include *.exe,*.dll,*.bat,*.sys -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -gt (Get-Date).AddDays(-3) } | Select-Object -First 5 -ExpandProperty Name";
-    std::string res = execPowerShell(cmd);
+    loadingAnimation("Precision File & Cheat Signature Scan");
     
-    bool suspicious = (res.find(".exe") != std::string::npos || res.find(".dll") != std::string::npos || res.find(".sys") != std::string::npos);
+    // กรองโฟลเดอร์เกมออก (Steam, Epic, Valorant, FiveM, Garena) และเช็คเฉพาะคำต้องห้าม
+    std::string cmd = R"(
+        $exclude = 'Steam|Epic Games|Riot Games|Garena|Valorant|FiveM|GTA|PUBG|Apex'
+        $cheatKeywords = 'cheat|injector|spoofer|bypass|aimbot|wallhack|silent|esp|cheatengine|xenos|scylla'
+        Get-ChildItem -Path $env:TEMP, $env:LOCALAPPDATA, "$env:USERPROFILE\Downloads" -Include *.exe,*.dll,*.sys,*.bat,*.ps1 -Recurse -ErrorAction SilentlyContinue |
+        Where-Object { 
+            $_.FullName -notmatch $exclude -and 
+            $_.Name -match $cheatKeywords -and
+            $_.LastWriteTime -gt (Get-Date).AddDays(-7)
+        } | Select-Object -First 5 -ExpandProperty FullName
+    )";
+
+    std::string res = execPowerShell(cmd);
+    bool detected = !res.empty() && res.find_first_not_of(" \t\n\r") != std::string::npos;
+
     return { 
-        "Suspicious Active Files", 
-        !suspicious, 
-        suspicious ? "Found executable/driver files created recently in Temp/AppData:\n" + res : "No suspicious executables or drivers detected in Temp/AppData." 
+        "Cheat Signature & Path Scan", 
+        !detected, 
+        detected ? "DETECTED: Suspicious cheat binaries/injectors found:\n" + res : "No suspicious cheat signatures or unauthorized executables found." 
     };
 }
 
-// 2. ตรวจสอบ Process / Injected Tools
+// 2. ตรวจสอบ Process ทำร้ายระบบ / Injected Tools แบบเจาะจง
 CheckResult checkMaliciousProcesses() {
-    loadingAnimation("Running Processes Integrity");
-    std::string cmd = "Get-Process | Where-Object { $_.ProcessName -match 'cheat|hack|injector|cheatengine|xenos|processhacker|dnspy|scylla|cheat' } | Select-Object -ExpandProperty ProcessName";
-    std::string res = execPowerShell(cmd);
+    loadingAnimation("Targeted Process Integrity Scan");
     
+    // รายชื่อ Process เครื่องมือโกงจริง (ไม่ใช่ชื่อโปรแกรมทั่วไป)
+    std::string cmd = R"(
+        $blackList = 'cheatengine|xenos|processhacker|dnspy|scylla|cheatengine-x86_64|extremeinjector|ksdumper|dumper|reshade-bypass'
+        Get-Process | Where-Object { $_.ProcessName -match $blackList } | Select-Object -ExpandProperty ProcessName
+    )";
+    
+    std::string res = execPowerShell(cmd);
     bool found = !res.empty() && res.find_first_not_of(" \t\n\r") != std::string::npos;
+
     return { 
-        "Malicious Processes Scan", 
+        "Malicious Process Scan", 
         !found, 
-        found ? "ALERT! Blacklisted tool/process detected running:\n" + res : "All active system processes clean." 
+        found ? "ALERT: High-risk cheat tool/injector currently running:\n" + res : "All running processes verified clean." 
     };
 }
 
-// 3. ตรวจสอบประวัติถังขยะ (Recycle Bin)
+// 3. ตรวจสอบประวัติถังขยะแบบค้นหาเฉพาะไฟล์โกงที่เพิ่งลบไป
 CheckResult checkDeletedFilesHistory() {
-    loadingAnimation("Deleted Files (Recycle Bin)");
-    std::string cmd = "(New-Object -ComObject Shell.Application).NameSpace(0xa).Items() | Select-Object -First 5 -ExpandProperty Name";
-    std::string res = execPowerShell(cmd);
+    loadingAnimation("Deleted Cheat Artifacts Analysis");
     
+    std::string cmd = R"(
+        $cheatKeywords = 'cheat|injector|spoofer|bypass|aimbot|wallhack|esp|cheatengine|xenos'
+        (New-Object -ComObject Shell.Application).NameSpace(0xa).Items() | 
+        Where-Object { $_.Name -match $cheatKeywords } | 
+        Select-Object -First 5 -ExpandProperty Name
+    )";
+    
+    std::string res = execPowerShell(cmd);
     bool found = !res.empty() && res.find_first_not_of(" \t\n\r") != std::string::npos;
+
     return { 
-        "Recycle Bin Artifacts", 
-        true, 
-        found ? "Recent deleted items found in Recycle Bin:\n" + res : "Recycle Bin is currently clean/empty." 
+        "Deleted Cheat Artifacts", 
+        !found, 
+        found ? "DETECTED: Traces of deleted cheat files found in Recycle Bin:\n" + res : "No deleted cheat artifacts detected in Recycle Bin." 
     };
 }
 
-// 4. ตรวจสอบประวัติ PowerShell
+// 4. ตรวจสอบประวัติคำสั่ง PowerShell และคำสั่งทำลายหลักฐาน
 CheckResult checkPowerShellHistory() {
-    loadingAnimation("PowerShell History Logs");
-    std::string cmd = "Get-Content (Get-PSReadLineOption).HistorySavePath -ErrorAction SilentlyContinue | Select-Object -Last 5";
-    std::string res = execPowerShell(cmd);
+    loadingAnimation("PowerShell Bypasses & Anti-Forensic Commands");
     
-    bool deletedHistory = res.empty() || res.find("ERROR") != std::string::npos;
+    std::string cmd = R"(
+        $historyPath = (Get-PSReadLineOption).HistorySavePath
+        if (Test-Path $historyPath) {
+            $content = Get-Content $historyPath -ErrorAction SilentlyContinue
+            $suspicious = $content | Where-Object { $_ -match 'Remove-Item|Clear-History|DownloadString|bypass|Unrestricted|Set-ExecutionPolicy' }
+            if ($suspicious) { $suspicious | Select-Object -Last 5 } else { "CLEAN" }
+        } else {
+            "LOG_CLEARED"
+        }
+    )";
+    
+    std::string res = execPowerShell(cmd);
+    bool isCleared = (res.find("LOG_CLEARED") != std::string::npos);
+    bool hasSuspiciousCmd = (!isCleared && res.find("CLEAN") == std::string::npos && !res.empty());
+
+    std::string details;
+    if (isCleared) {
+        details = "WARNING: PowerShell history log file was deliberately deleted/cleared!";
+    } else if (hasSuspiciousCmd) {
+        details = "DETECTED: Anti-forensic or bypass commands executed in PowerShell:\n" + res;
+    } else {
+        details = "PowerShell logs verified. No bypass or anti-forensic commands detected.";
+    }
+
     return { 
-        "PowerShell History Logs", 
-        !deletedHistory, 
-        deletedHistory ? "WARNING: PowerShell history log file missing, empty, or recently cleared!" : "Recent PowerShell Execution History:\n" + res 
+        "PowerShell Anti-Forensic Check", 
+        (!isCleared && !hasSuspiciousCmd), 
+        details 
     };
 }
 
-// 5. ตรวจสอบ Prefetch History
+// 5. ตรวจสอบ Prefetch ย้อนหลัง ค้นหาการรันโปรแกรมโกงที่เพิ่งปิดไป
 CheckResult checkExecutedHistory() {
-    loadingAnimation("System Execution Cache (Prefetch)");
-    std::string cmd = "Get-ChildItem -Path C:\\Windows\\Prefetch -Filter *.pf -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 5 -ExpandProperty Name";
-    std::string res = execPowerShell(cmd);
+    loadingAnimation("Prefetch Artifacts (History Scan)");
     
-    bool valid = !res.empty() && res.find_first_not_of(" \t\n\r") != std::string::npos;
+    std::string cmd = R"(
+        $cheatKeywords = 'CHEAT|INJECTOR|SPOOFER|BYPASS|AIMBOT|WALLHACK|CHEATENGINE|XENOS|PROCESSHACKER'
+        Get-ChildItem -Path C:\Windows\Prefetch -Filter *.pf -ErrorAction SilentlyContinue | 
+        Where-Object { $_.Name -match $cheatKeywords } | 
+        Sort-Object LastWriteTime -Descending | 
+        Select-Object -First 5 -ExpandProperty Name
+    )";
+    
+    std::string res = execPowerShell(cmd);
+    bool found = !res.empty() && res.find_first_not_of(" \t\n\r") != std::string::npos;
+
     return { 
-        "Prefetch Execution Log", 
-        valid, 
-        valid ? "Recently launched applications (Prefetch):\n" + res : "Prefetch log is empty or access denied." 
+        "Prefetch Execution History", 
+        !found, 
+        found ? "DETECTED: Evidence of executed cheat programs in Prefetch cache:\n" + res : "No cheat execution traces found in Prefetch history." 
     };
 }
 
 // =========================================================
-// UI Card Render Engine
+// Render Engine & UI
 // =========================================================
 void renderResultCard(const CheckResult& res) {
     std::cout << "\n  " << Color::DARK_GRAY << "┌──────────────────────────────────────────────────────────────────────────┐" << Color::RESET << std::endl;
@@ -237,7 +276,7 @@ void renderResultCard(const CheckResult& res) {
 void runAllChecks() {
     clearScreen();
     printBanner();
-    std::cout << Color::CYAN << Color::BOLD << "  [=== INITIATING FULL SYSTEM AUTO SCAN ===]\n\n" << Color::RESET;
+    std::cout << Color::CYAN << Color::BOLD << "  [=== INITIATING FULL PRECISION ANTI-CHEAT SCAN ===]\n\n" << Color::RESET;
     
     std::vector<CheckResult> results;
     results.push_back(checkSuspiciousFiles());
@@ -246,7 +285,7 @@ void runAllChecks() {
     results.push_back(checkPowerShellHistory());
     results.push_back(checkExecutedHistory());
 
-    std::cout << "\n\n  " << Color::MAGENTA << Color::BOLD << "=========================== [ SCAN REPORT SUMMARY ] ===========================" << Color::RESET << std::endl;
+    std::cout << "\n\n  " << Color::MAGENTA << Color::BOLD << "=========================== [ FINAL SCAN REPORT ] ===========================" << Color::RESET << std::endl;
     for (const auto& res : results) {
         renderResultCard(res);
     }
@@ -256,21 +295,18 @@ void runAllChecks() {
     std::cin.get();
 }
 
-// =========================================================
-// Main Interactive Menu Loop
-// =========================================================
 void showMenu() {
     while (true) {
         clearScreen();
         printBanner();
         
-        std::cout << Color::WHITE << Color::BOLD << "  [ SELECT SCAN MODULE ]\n" << Color::RESET << std::endl;
-        std::cout << Color::CYAN << "   [1] " << Color::WHITE << "Check Suspicious Files & Paths " << Color::DARK_GRAY << "(Temp / AppData / Executables)" << std::endl;
-        std::cout << Color::CYAN << "   [2] " << Color::WHITE << "Check Running Processes " << Color::DARK_GRAY << "(Injectors / Mod Tools / Hacks)" << std::endl;
-        std::cout << Color::CYAN << "   [3] " << Color::WHITE << "Check Deleted Files History " << Color::DARK_GRAY << "(Recycle Bin Artifacts)" << std::endl;
-        std::cout << Color::CYAN << "   [4] " << Color::WHITE << "Check PowerShell Command Logs " << Color::DARK_GRAY << "(History & Log Wiping)" << std::endl;
-        std::cout << Color::CYAN << "   [5] " << Color::WHITE << "Check Program Execution History " << Color::DARK_GRAY << "(Prefetch Logs)" << std::endl;
-        std::cout << Color::GREEN << Color::BOLD << "   [6] " << Color::WHITE << Color::BOLD << "RUN FULL AUTOMATED SCAN " << Color::GREEN << "(Recommended)" << Color::RESET << std::endl;
+        std::cout << Color::WHITE << Color::BOLD << "  [ PRECISION SCAN MODULES ]\n" << Color::RESET << std::endl;
+        std::cout << Color::CYAN << "   [1] " << Color::WHITE << "Scan Cheat Signatures & Paths " << Color::DARK_GRAY << "(Excludes Game Directories)" << std::endl;
+        std::cout << Color::CYAN << "   [2] " << Color::WHITE << "Scan Running Cheat Processes " << Color::DARK_GRAY << "(Injectors / Cheat Tools)" << std::endl;
+        std::cout << Color::CYAN << "   [3] " << Color::WHITE << "Scan Deleted Cheat Files " << Color::DARK_GRAY << "(Recycle Bin Artifacts)" << std::endl;
+        std::cout << Color::CYAN << "   [4] " << Color::WHITE << "Scan PowerShell Bypasses " << Color::DARK_GRAY << "(Anti-Forensic History Checks)" << std::endl;
+        std::cout << Color::CYAN << "   [5] " << Color::WHITE << "Scan Prefetch History " << Color::DARK_GRAY << "(Executed Cheat Logs)" << std::endl;
+        std::cout << Color::GREEN << Color::BOLD << "   [6] " << Color::WHITE << Color::BOLD << "RUN FULL PRECISION SCAN " << Color::GREEN << "(Recommended)" << Color::RESET << std::endl;
         std::cout << Color::RED << "   [0] " << Color::WHITE << "Exit Program" << std::endl;
         
         std::cout << "\n  " << Color::YELLOW << Color::BOLD << "ChelCheckCMD " << Color::CYAN << "❯ " << Color::RESET;
